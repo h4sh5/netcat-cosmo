@@ -1,0 +1,5 @@
+on windows
+Error: Couldn't create connection (err=-4): ENOSYS/1/Function not implemented/0/The operation completed successfully
+
+in network.c:381
+-4 if the fcntl(2) call failed
