@@ -1,0 +1,67 @@
+name: Cosmo build release GNU netcat
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # this is a nice option that will enable a button w/ inputs
+    inputs:
+      git-ref:
+        description: Git Ref (Optional)    
+        required: false
+env:
+  CARGO_TERM_COLOR: always
+  BUILDTARGET: netcat
+
+jobs:
+  build-release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install cosmopolitan
+      run: mkdir libcosmo && cd libcosmo && wget https://justine.lol/cosmopolitan/cosmopolitan.zip && unzip cosmopolitan.zip && ls -lha && cd ../
+
+
+    - name: build
+      run: ./cosmo_build.sh
+
+    - name: compress binary
+      run: zip ${{ env.BUILDTARGET }}.zip ${{ env.BUILDTARGET }}.com && tar cvzf ${{ env.BUILDTARGET }}.tar.gz ${{ env.BUILDTARGET }}.com
+
+    - name: create release  
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: false
+        prerelease: false
+        release_name: ${{ env.BUILDTARGET }} ${{ github.ref }}
+        tag_name: gh-v-${{ github.ref }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: upload ${{ env.BUILDTARGET }} cosmo tgz
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        asset_path: ./${{ env.BUILDTARGET }}.tar.gz
+        asset_name: ${{ env.BUILDTARGET }}-${{ github.ref }}.tar.gz
+        asset_content_type: application/gzip
+        # works because of previous step with id: create_release
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    - name: upload ${{ env.BUILDTARGET }} cosmo zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        asset_path: ./${{ env.BUILDTARGET }}.zip
+        asset_name: ${{ env.BUILDTARGET }}-${{ github.ref }}.zip
+        asset_content_type: application/zip
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+  
+
